@@ -1,0 +1,43 @@
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.task-item:hover:not(.task-completed) {
+  background: var(--glass-bg);
+}
+
+.task-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-text {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  flex: 1;
+  user-select: none;
+}
+
+.task-completed .task-text {
+  color: var(--color-text-muted);
+}
+
+.task-strikethrough {
+  position: absolute;
+  left: var(--space-8);
+  right: var(--space-4);
+  height: 1px;
+  transform-origin: left;
+  opacity: 0.5;
+}
