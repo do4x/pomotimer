@@ -56,3 +56,7 @@
   letter-spacing: 0.2em;
   margin-top: var(--space-2);
 }
+
+.timer-overtime-pill {
+  margin-bottom: var(--space-2);
+}

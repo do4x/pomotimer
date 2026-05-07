@@ -40,3 +40,15 @@
   background: var(--color-surface-hover);
   color: var(--color-text-primary);
 }
+
+.control-btn-end {
+  padding: var(--space-3) var(--space-4);
+  font-weight: 600;
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.4);
+}
+
+.control-btn-end:hover {
+  background: rgba(252, 211, 77, 0.1);
+  color: #fde68a;
+}

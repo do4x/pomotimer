@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useTimerMachine } from './hooks/useTimerMachine';
+import { AnimatePresence } from 'motion/react';
+import { useTimerMachine, PRE_END_THRESHOLD_SECONDS } from './hooks/useTimerMachine';
 import { useSettings } from './hooks/useSettings';
 import { useTaskStore } from './hooks/useTaskStore';
 import { useResourceStore } from './hooks/useResourceStore';
 import { useStudyStats } from './hooks/useStudyStats';
 import { useActiveSubject } from './hooks/useActiveSubject';
+import { useNotifier } from './hooks/useNotifier';
 import { CircularTimer } from './components/timer/CircularTimer';
 import { ControlButtons } from './components/timer/ControlButtons';
 import { PhaseIndicator } from './components/timer/PhaseIndicator';
 import { CycleCounter } from './components/timer/CycleCounter';
+import { PreEndBanner } from './components/timer/PreEndBanner';
 import { TaskListPanel } from './components/tasks/TaskListPanel';
 import { SettingsOverlay } from './components/settings/SettingsOverlay';
 import { ResourceSidebar } from './components/sidebar/ResourceSidebar';
@@ -22,13 +25,31 @@ import './App.css';
 
 function App() {
   const { settings, updateSettings } = useSettings();
-  const { state, start, pause, resume, skip, reset } = useTimerMachine(settings);
+  const {
+    state, start, pause, resume, skip, reset,
+    armOvertime, endOvertime, markPreEndNotified,
+  } = useTimerMachine(settings);
   const { activeId, setActive } = useActiveSubject();
   const activeSubject = getSubject(activeId) || SUBJECTS[0];
   const { tasksFor, allCompleted, addTask, completeTask, deleteTask } = useTaskStore();
   const { resourcesFor, addResource, removeResource } = useResourceStore();
-  const studyStats = useStudyStats(state.phase, state.status, activeSubject.id);
+  const studyStats = useStudyStats(state.phase, state.status, activeSubject.id, state.overtime);
+  const { notifyPreEnd } = useNotifier();
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Pre-end notification + banner trigger at 30s left in a focus phase.
+  useEffect(() => {
+    if (
+      state.phase === 'focus' &&
+      state.status === 'running' &&
+      !state.overtime &&
+      !state.preEndNotified &&
+      state.timeRemaining === PRE_END_THRESHOLD_SECONDS
+    ) {
+      notifyPreEnd(activeSubject.name, PRE_END_THRESHOLD_SECONDS);
+      markPreEndNotified();
+    }
+  }, [state.phase, state.status, state.overtime, state.preEndNotified, state.timeRemaining, activeSubject.name, notifyPreEnd, markPreEndNotified]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -76,6 +97,15 @@ function App() {
     state.phase === 'focus' ? activeSubject.name :
     PHASE_LABELS[state.phase] || 'Ready';
 
+  // Banner shows once preEndNotified fires until phase ends or user dismisses/arms.
+  const showPreEndBanner =
+    state.phase === 'focus' &&
+    state.status === 'running' &&
+    state.preEndNotified &&
+    !state.overtimeArmed &&
+    !state.overtime &&
+    state.timeRemaining > 0;
+
   return (
     <div className="app">
       <button
@@ -102,17 +132,21 @@ function App() {
           status={state.status}
           phaseLabel={phaseLabel}
           activeSubject={activeSubject}
+          overtime={state.overtime}
+          overtimeSeconds={state.overtimeSeconds}
         />
 
         <ControlButtons
           phase={state.phase}
           status={state.status}
           activeSubject={activeSubject}
+          overtime={state.overtime}
           onStart={start}
           onPause={pause}
           onResume={resume}
           onSkip={skip}
           onReset={reset}
+          onEndOvertime={endOvertime}
         />
 
         <CycleCounter
@@ -131,6 +165,17 @@ function App() {
           onDeleteTask={deleteTask}
         />
       </main>
+
+      <AnimatePresence>
+        {showPreEndBanner && (
+          <PreEndBanner
+            subjectName={activeSubject.name}
+            secondsLeft={state.timeRemaining}
+            onDismiss={markPreEndNotified}
+            onArmOvertime={armOvertime}
+          />
+        )}
+      </AnimatePresence>
 
       <SettingsOverlay
         isOpen={settingsOpen}

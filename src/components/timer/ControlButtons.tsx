@@ -8,11 +8,13 @@ interface Props {
   phase: TimerPhase;
   status: TimerStatus;
   activeSubject: Subject | null;
+  overtime?: boolean;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
   onSkip: () => void;
   onReset: () => void;
+  onEndOvertime?: () => void;
 }
 
 const buttonVariants = {
@@ -21,7 +23,10 @@ const buttonVariants = {
   tap: { scale: 0.95 },
 };
 
-export function ControlButtons({ phase, status, activeSubject, onStart, onPause, onResume, onSkip, onReset }: Props) {
+export function ControlButtons({
+  phase, status, activeSubject, overtime = false,
+  onStart, onPause, onResume, onSkip, onReset, onEndOvertime,
+}: Props) {
   const colors = getPhaseColors(phase, activeSubject);
 
   return (
@@ -70,15 +75,26 @@ export function ControlButtons({ phase, status, activeSubject, onStart, onPause,
 
       {status !== 'idle' && (
         <>
-          <motion.button
-            className="control-btn control-btn-secondary"
-            variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
-            onClick={onSkip} title="Skip to next phase"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z" />
-            </svg>
-          </motion.button>
+          {overtime ? (
+            <motion.button
+              className="control-btn control-btn-secondary control-btn-end"
+              variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
+              onClick={() => onEndOvertime?.()}
+              title="End session"
+            >
+              <span>End Session</span>
+            </motion.button>
+          ) : (
+            <motion.button
+              className="control-btn control-btn-secondary"
+              variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
+              onClick={onSkip} title="Skip to next phase"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z" />
+              </svg>
+            </motion.button>
+          )}
 
           <motion.button
             className="control-btn control-btn-secondary"

@@ -43,9 +43,11 @@ function dailyTotal(record: DailySubjectRecord | undefined): number {
   return Object.values(record).reduce((acc, v) => acc + (v || 0), 0);
 }
 
-export function useStudyStats(phase: TimerPhase, status: TimerStatus, activeSubjectId: string) {
+export function useStudyStats(phase: TimerPhase, status: TimerStatus, activeSubjectId: string, overtime: boolean = false) {
   const [stats, setStats] = useState<StudyStats>(loadStats);
-  const isStudying = phase === 'focus' && status === 'running';
+  // Credit ticks during focus AND overtime (overtime keeps phase = 'focus' in our reducer,
+  // so this reduces to a check on focus + running, but we accept the explicit flag for clarity).
+  const isStudying = (phase === 'focus' || overtime) && status === 'running';
   const isStudyingRef = useRef(isStudying);
   isStudyingRef.current = isStudying;
   const subjectRef = useRef(activeSubjectId);

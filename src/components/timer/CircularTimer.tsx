@@ -4,6 +4,7 @@ import type { TimerPhase } from '../../types/timer';
 import type { Subject } from '../../types/subject';
 import { getPhaseColors } from '../../utils/constants';
 import { formatTime } from '../../utils/formatTime';
+import { OvertimeIndicator } from './OvertimeIndicator';
 import './CircularTimer.css';
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
   status: 'idle' | 'running' | 'paused';
   phaseLabel: string;
   activeSubject: Subject | null;
+  overtime?: boolean;
+  overtimeSeconds?: number;
 }
 
 const SIZE = 280;
@@ -21,21 +24,40 @@ const GLOW_STROKE = 10;
 const RADIUS = (SIZE - GLOW_STROKE * 2) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function CircularTimer({ timeRemaining, totalTime, phase, status, phaseLabel, activeSubject }: Props) {
+export function CircularTimer({
+  timeRemaining,
+  totalTime,
+  phase,
+  status,
+  phaseLabel,
+  activeSubject,
+  overtime = false,
+  overtimeSeconds = 0,
+}: Props) {
   const colors = getPhaseColors(phase, activeSubject);
   const progress = useMotionValue(totalTime > 0 ? 1 - timeRemaining / totalTime : 0);
   const dashOffset = useTransform(progress, [0, 1], [CIRCUMFERENCE, 0]);
   const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
+    if (overtime) {
+      animate(progress, 1, { duration: 0.5, ease: 'easeOut' });
+      return;
+    }
     const target = totalTime > 0 ? 1 - timeRemaining / totalTime : 0;
     animate(progress, target, { duration: 0.5, ease: 'easeOut' });
-  }, [timeRemaining, totalTime, progress]);
+  }, [timeRemaining, totalTime, progress, overtime]);
 
   const phaseChanged = phase !== prevPhaseRef.current;
   useEffect(() => {
     prevPhaseRef.current = phase;
   }, [phase]);
+
+  const display = overtime
+    ? `+${formatTime(overtimeSeconds)}`
+    : status === 'idle' && phase === 'idle'
+      ? '--:--'
+      : formatTime(timeRemaining);
 
   return (
     <div className="circular-timer">
@@ -62,7 +84,7 @@ export function CircularTimer({ timeRemaining, totalTime, phase, status, phaseLa
           style={{ strokeDashoffset: dashOffset, rotate: '-90deg', transformOrigin: 'center' }}
         />
 
-        {status === 'running' && totalTime > 0 && (
+        {status === 'running' && totalTime > 0 && !overtime && (
           <motion.circle
             cx={SIZE / 2} cy={SIZE / 2} r={4} fill={colors.glow}
             style={{ filter: 'blur(2px)', opacity: 0.8 }}
@@ -73,6 +95,11 @@ export function CircularTimer({ timeRemaining, totalTime, phase, status, phaseLa
       </svg>
 
       <div className="timer-center">
+        {overtime && (
+          <div className="timer-overtime-pill">
+            <OvertimeIndicator color={colors.primary} />
+          </div>
+        )}
         <motion.div
           className="timer-time"
           key={phase}
@@ -80,7 +107,7 @@ export function CircularTimer({ timeRemaining, totalTime, phase, status, phaseLa
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
-          {status === 'idle' && phase === 'idle' ? '--:--' : formatTime(timeRemaining)}
+          {display}
         </motion.div>
 
         <motion.div
