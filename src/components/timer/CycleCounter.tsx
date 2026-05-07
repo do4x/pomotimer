@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { getPhaseColors } from '../../utils/constants';
 import type { TimerPhase } from '../../types/timer';
 import type { Subject } from '../../types/subject';
+import { useT } from '../../i18n/i18n';
 import './CycleCounter.css';
 
 interface Props {
@@ -12,11 +13,12 @@ interface Props {
 }
 
 export function CycleCounter({ completedCycles, totalCycles, phase, activeSubject }: Props) {
+  const t = useT();
   const colors = getPhaseColors(phase, activeSubject);
 
   return (
     <div className="cycle-counter">
-      <span className="cycle-label">Cycles</span>
+      <span className="cycle-label">{t('Cycles', 'Cicluri')}</span>
       <div className="cycle-dots">
         {Array.from({ length: totalCycles }, (_, i) => (
           <motion.div

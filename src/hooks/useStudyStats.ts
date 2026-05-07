@@ -94,6 +94,21 @@ export function useStudyStats(phase: TimerPhase, status: TimerStatus, activeSubj
     });
   }, []);
 
+  /** Manually credit study time (e.g. session done outside the app). */
+  const addManualSeconds = useCallback((dateKey: string, subjectId: string, seconds: number) => {
+    if (!subjectId || seconds <= 0) return;
+    setStats(prev => {
+      const dayRecord = { ...(prev.dailyRecords[dateKey] || {}) };
+      dayRecord[subjectId] = (dayRecord[subjectId] || 0) + seconds;
+      const updated: StudyStats = {
+        ...prev,
+        dailyRecords: { ...prev.dailyRecords, [dateKey]: dayRecord },
+      };
+      saveStats(updated);
+      return updated;
+    });
+  }, []);
+
   const weekData = useMemo(() => getWeekData(stats.dailyRecords), [stats.dailyRecords]);
 
   // Flat totals (for backward-compat consumers like the heatmap)
@@ -111,6 +126,7 @@ export function useStudyStats(phase: TimerPhase, status: TimerStatus, activeSubj
     streak,
     streakGoalMinutes: stats.streakGoalMinutes,
     updateGoal,
+    addManualSeconds,
     weekData,
     allRecords,
     dailyRecords: stats.dailyRecords,

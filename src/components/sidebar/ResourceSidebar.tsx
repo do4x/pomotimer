@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Resource } from '../../types/resource';
 import type { Subject } from '../../types/subject';
+import { subjectName } from '../../types/subject';
+import { useT, useLang } from '../../i18n/i18n';
 import './ResourceSidebar.css';
 
 interface Props {
@@ -20,6 +22,8 @@ function getTypeIcon(type: Resource['type']) {
 }
 
 export function ResourceSidebar({ activeSubject, resources, onAddResource, onRemoveResource }: Props) {
+  const t = useT();
+  const lang = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -81,13 +85,13 @@ export function ResourceSidebar({ activeSubject, resources, onAddResource, onRem
                 animate={{ backgroundColor: accent }}
                 transition={{ duration: 0.4 }}
               />
-              <span className="sidebar-title">{activeSubject.name}</span>
+              <span className="sidebar-title">{subjectName(activeSubject.id, lang)}</span>
               <span className="sidebar-count">{resources.length}</span>
             </div>
 
             <div className="sidebar-resources">
               {resources.length === 0 && (
-                <div className="sidebar-empty">No resources for this subject</div>
+                <div className="sidebar-empty">{t('No resources for this subject', 'Nicio resursă pentru această materie')}</div>
               )}
               {resources.map(r => (
                 <motion.a
@@ -118,19 +122,19 @@ export function ResourceSidebar({ activeSubject, resources, onAddResource, onRem
               <input
                 type="text"
                 className="sidebar-input"
-                placeholder="Paste URL..."
+                placeholder={t('Paste URL...', 'Lipește URL...')}
                 value={url}
                 onChange={e => setUrl(e.target.value)}
               />
               <input
                 type="text"
                 className="sidebar-input sidebar-input-sm"
-                placeholder="Title (optional)"
+                placeholder={t('Title (optional)', 'Titlu (opțional)')}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
               />
               <button type="submit" className="sidebar-add-btn" style={{ color: accent }}>
-                Add
+                {t('Add', 'Adaugă')}
               </button>
             </form>
           </motion.div>

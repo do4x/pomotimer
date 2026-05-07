@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { SUBJECTS } from '../../types/subject';
+import { SUBJECTS, subjectName } from '../../types/subject';
+import { useLang } from '../../i18n/i18n';
 import './SubjectPicker.css';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function SubjectPicker({ activeId, onPick }: Props) {
+  const lang = useLang();
   return (
     <div className="subject-picker">
       {SUBJECTS.map(s => {
@@ -27,7 +29,7 @@ export function SubjectPicker({ activeId, onPick }: Props) {
             whileTap={{ scale: 0.95 }}
           >
             <span className="subject-pill-dot" style={{ backgroundColor: s.color, opacity: active ? 0 : 1 }} />
-            <span className="subject-pill-name">{s.name}</span>
+            <span className="subject-pill-name">{subjectName(s.id, lang)}</span>
           </motion.button>
         );
       })}

@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { useT } from '../../i18n/i18n';
 import './OvertimeIndicator.css';
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export function OvertimeIndicator({ color }: Props) {
+  const t = useT();
   return (
     <motion.div
       className="overtime-indicator"
@@ -14,7 +16,7 @@ export function OvertimeIndicator({ color }: Props) {
       animate={{ opacity: 1, y: 0 }}
     >
       <span className="overtime-dot" style={{ backgroundColor: color }} />
-      OVERTIME
+      {t('OVERTIME', 'PRELUNGIRE')}
     </motion.div>
   );
 }

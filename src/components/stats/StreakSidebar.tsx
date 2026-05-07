@@ -4,7 +4,9 @@ import type { TimerPhase } from '../../types/timer';
 import type { Subject } from '../../types/subject';
 import type { DailySubjectRecord } from '../../types/stats';
 import { getPhaseColors, PHASE_COLORS } from '../../utils/constants';
+import { useT, useLang } from '../../i18n/i18n';
 import { WeeklyProgress } from '../subjects/WeeklyProgress';
+import { DailyProgress } from '../subjects/DailyProgress';
 import './StreakSidebar.css';
 
 interface DayData {
@@ -15,14 +17,17 @@ interface DayData {
 
 interface Props {
   todaySeconds: number;
+  todayBySubject: DailySubjectRecord;
   streak: number;
   streakGoalMinutes: number;
   weekData: DayData[];
   allRecords: Record<string, number>;
   dailyRecords: Record<string, DailySubjectRecord>;
   subjectGoals: Record<string, number>;
+  subjectDailyGoals: Record<string, number>;
   phase: TimerPhase;
   activeSubject: Subject | null;
+  onOpenLogTime: () => void;
 }
 
 type ViewMode = 'daily' | 'calendar';
@@ -32,18 +37,6 @@ function formatDuration(totalSeconds: number): string {
   const m = Math.floor((totalSeconds % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
-}
-
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00');
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (dateStr === toDateKey(today)) return 'Today';
-  if (dateStr === toDateKey(yesterday)) return 'Yesterday';
-
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function toDateKey(d: Date): string {
@@ -58,7 +51,6 @@ function getFirstDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 1).getDay();
 }
 
-// Get sorted daily records (most recent first)
 function getSortedDays(records: Record<string, number>): { date: string; seconds: number }[] {
   return Object.entries(records)
     .filter(([, s]) => s > 0)
@@ -66,7 +58,22 @@ function getSortedDays(records: Record<string, number>): { date: string; seconds
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekData, allRecords, dailyRecords, subjectGoals, phase, activeSubject }: Props) {
+const DAY_ABBR = {
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  ro: ['Du', 'Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ'],
+};
+
+const CAL_HEADER = {
+  en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+  ro: ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
+};
+
+export function StreakSidebar({
+  todaySeconds, todayBySubject, streak, streakGoalMinutes, weekData, allRecords, dailyRecords,
+  subjectGoals, subjectDailyGoals, phase, activeSubject, onOpenLogTime,
+}: Props) {
+  const t = useT();
+  const lang = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('daily');
   const [calMonth, setCalMonth] = useState(() => {
@@ -80,6 +87,16 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
   const todayProgress = Math.min(todaySeconds / goalSeconds, 1);
   const maxWeekSeconds = Math.max(...weekData.map(d => d.seconds), goalSeconds);
 
+  function formatDateLabel(dateStr: string): string {
+    const d = new Date(dateStr + 'T12:00:00');
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (dateStr === toDateKey(today)) return t('Today', 'Azi');
+    if (dateStr === toDateKey(yesterday)) return t('Yesterday', 'Ieri');
+    return d.toLocaleDateString(lang === 'ro' ? 'ro-RO' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
   const handleEnter = () => {
     if (closeTimeout.current) {
       clearTimeout(closeTimeout.current);
@@ -89,17 +106,13 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
   };
 
   const handleLeave = () => {
-    closeTimeout.current = window.setTimeout(() => {
-      setIsOpen(false);
-    }, 300);
+    closeTimeout.current = window.setTimeout(() => setIsOpen(false), 300);
   };
 
   const sortedDays = getSortedDays(allRecords);
-
-  // Calendar data
   const daysInMonth = getDaysInMonth(calMonth.year, calMonth.month);
   const firstDay = getFirstDayOfMonth(calMonth.year, calMonth.month);
-  const monthLabel = new Date(calMonth.year, calMonth.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthLabel = new Date(calMonth.year, calMonth.month).toLocaleDateString(lang === 'ro' ? 'ro-RO' : 'en-US', { month: 'long', year: 'numeric' });
 
   const prevMonth = () => {
     setCalMonth(prev => {
@@ -115,15 +128,17 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
     });
   };
 
+  // Map week-data day labels (English by default) to localized
+  const dayLabels = DAY_ABBR[lang];
+  const localizedWeekData = weekData.map((d) => {
+    const date = new Date(d.date + 'T12:00:00');
+    return { ...d, label: dayLabels[date.getDay()] };
+  });
+
   return (
     <>
-      {/* Hover trigger zone */}
-      <div
-        className="streak-trigger"
-        onMouseEnter={handleEnter}
-      />
+      <div className="streak-trigger" onMouseEnter={handleEnter} />
 
-      {/* Sidebar tab — streak badge */}
       <motion.div
         className="streak-tab"
         animate={{ opacity: isOpen ? 0 : 1 }}
@@ -152,19 +167,12 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
             onMouseEnter={handleEnter}
             onMouseLeave={handleLeave}
           >
-            {/* Header with streak info */}
             <div className="streak-header">
               <div className="streak-hero">
                 <motion.div
                   className="streak-flame-large"
-                  animate={{
-                    scale: streak > 0 ? [1, 1.1, 1] : 1,
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: streak > 0 ? Infinity : 0,
-                    ease: 'easeInOut',
-                  }}
+                  animate={{ scale: streak > 0 ? [1, 1.1, 1] : 1 }}
+                  transition={{ duration: 2, repeat: streak > 0 ? Infinity : 0, ease: 'easeInOut' }}
                 >
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                     <path
@@ -181,14 +189,13 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                 </motion.div>
                 <div className="streak-hero-text">
                   <span className="streak-hero-count">{streak}</span>
-                  <span className="streak-hero-label">day streak</span>
+                  <span className="streak-hero-label">{t('day streak', 'zile streak')}</span>
                 </div>
               </div>
 
-              {/* Today's progress */}
               <div className="streak-today">
                 <div className="streak-today-row">
-                  <span className="streak-today-label">Today</span>
+                  <span className="streak-today-label">{t('Today', 'Azi')}</span>
                   <span className="streak-today-value">{formatDuration(todaySeconds)}</span>
                 </div>
                 <div className="streak-progress-track">
@@ -202,16 +209,17 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                   />
                 </div>
                 <span className="streak-goal-text">
-                  {todayProgress >= 1 ? 'Goal reached!' : `${formatDuration(goalSeconds - todaySeconds)} to goal`}
+                  {todayProgress >= 1
+                    ? t('Goal reached!', 'Obiectiv atins!')
+                    : `${formatDuration(goalSeconds - todaySeconds)} ${t('to goal', 'până la obiectiv')}`}
                 </span>
               </div>
 
-              {/* Mini week chart */}
               <div className="streak-week">
-                {weekData.map((day, i) => {
+                {localizedWeekData.map((day, i) => {
                   const height = maxWeekSeconds > 0 ? (day.seconds / maxWeekSeconds) * 100 : 0;
                   const metGoal = day.seconds >= goalSeconds;
-                  const isToday = i === weekData.length - 1;
+                  const isToday = i === localizedWeekData.length - 1;
                   return (
                     <div key={day.date} className={`streak-week-day ${isToday ? 'is-today' : ''}`} title={`${day.label}: ${formatDuration(day.seconds)}`}>
                       <div className="streak-week-bar-track">
@@ -230,33 +238,39 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                   );
                 })}
               </div>
+
+              {/* Log past session button */}
+              <button className="streak-log-btn" onClick={onOpenLogTime}>
+                + {t('Log study time', 'Adaugă timp de studiu')}
+              </button>
             </div>
 
-            {/* Per-subject weekly progress */}
+            {/* Per-subject DAILY progress */}
+            <DailyProgress goals={subjectDailyGoals} todayBySubject={todayBySubject} />
+
+            {/* Per-subject WEEKLY progress */}
             <WeeklyProgress goals={subjectGoals} dailyRecords={dailyRecords} />
 
-            {/* View toggle */}
             <div className="streak-view-toggle">
               <button
                 className={`streak-view-btn ${view === 'daily' ? 'active' : ''}`}
                 onClick={() => setView('daily')}
               >
-                Day by Day
+                {t('Day by Day', 'Zi cu zi')}
               </button>
               <button
                 className={`streak-view-btn ${view === 'calendar' ? 'active' : ''}`}
                 onClick={() => setView('calendar')}
               >
-                Calendar
+                {t('Calendar', 'Calendar')}
               </button>
             </div>
 
-            {/* Content area */}
             <div className="streak-content">
               {view === 'daily' ? (
                 <div className="streak-daily-list">
                   {sortedDays.length === 0 && (
-                    <div className="streak-empty">No study sessions yet</div>
+                    <div className="streak-empty">{t('No study sessions yet', 'Nicio sesiune de studiu încă')}</div>
                   )}
                   {sortedDays.map(day => {
                     const metGoal = day.seconds >= goalSeconds;
@@ -283,18 +297,15 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                   </div>
 
                   <div className="streak-cal-header">
-                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                    {CAL_HEADER[lang].map((d, i) => (
                       <span key={i} className="streak-cal-header-day">{d}</span>
                     ))}
                   </div>
 
                   <div className="streak-cal-grid">
-                    {/* Empty cells for offset */}
                     {Array.from({ length: firstDay }, (_, i) => (
                       <div key={`empty-${i}`} className="streak-cal-cell empty" />
                     ))}
-
-                    {/* Day cells */}
                     {Array.from({ length: daysInMonth }, (_, i) => {
                       const day = i + 1;
                       const key = `${calMonth.year}-${String(calMonth.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -302,12 +313,7 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                       const metGoal = seconds >= goalSeconds;
                       const hasData = seconds > 0;
                       const isToday = key === toDateKey(new Date());
-
-                      // Intensity: 0 = none, scale from 0.2 to 1 based on how much over goal
-                      const intensity = hasData
-                        ? Math.min(seconds / goalSeconds, 1)
-                        : 0;
-
+                      const intensity = hasData ? Math.min(seconds / goalSeconds, 1) : 0;
                       return (
                         <div
                           key={key}
@@ -317,9 +323,7 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                           <div
                             className="streak-cal-cell-bg"
                             style={{
-                              backgroundColor: hasData
-                                ? metGoal ? '#22c55e' : colors.primary
-                                : 'transparent',
+                              backgroundColor: hasData ? (metGoal ? '#22c55e' : colors.primary) : 'transparent',
                               opacity: hasData ? 0.15 + intensity * 0.55 : 0,
                             }}
                           />
@@ -331,17 +335,13 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                   </div>
 
                   <div className="streak-cal-legend">
-                    <span className="streak-cal-legend-label">Less</span>
+                    <span className="streak-cal-legend-label">{t('Less', 'Mai puțin')}</span>
                     <div className="streak-cal-legend-scale">
                       {[0.15, 0.3, 0.5, 0.7, 1].map((op, i) => (
-                        <div
-                          key={i}
-                          className="streak-cal-legend-box"
-                          style={{ backgroundColor: colors.primary, opacity: op }}
-                        />
+                        <div key={i} className="streak-cal-legend-box" style={{ backgroundColor: colors.primary, opacity: op }} />
                       ))}
                     </div>
-                    <span className="streak-cal-legend-label">More</span>
+                    <span className="streak-cal-legend-label">{t('More', 'Mai mult')}</span>
                   </div>
                 </div>
               )}

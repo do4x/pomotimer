@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
+import { useT } from '../../i18n/i18n';
 import './TaskInput.css';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function TaskInput({ onAdd, accentColor }: Props) {
+  const t = useT();
   const [value, setValue] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -28,7 +30,7 @@ export function TaskInput({ onAdd, accentColor }: Props) {
       <input
         type="text"
         className="task-input"
-        placeholder="Add a task..."
+        placeholder={t('Add a task...', 'Adaugă un task...')}
         value={value}
         onChange={e => setValue(e.target.value)}
       />

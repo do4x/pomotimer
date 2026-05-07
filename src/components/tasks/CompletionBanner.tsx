@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { useT } from '../../i18n/i18n';
 import './CompletionBanner.css';
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export function CompletionBanner({ accentColor }: Props) {
+  const t = useT();
   return (
     <motion.div
       className="completion-banner"
@@ -31,7 +33,7 @@ export function CompletionBanner({ accentColor }: Props) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
       >
-        Well done
+        {t('Well done', 'Bravo')}
       </motion.span>
     </motion.div>
   );

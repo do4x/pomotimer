@@ -17,14 +17,16 @@ import { SettingsOverlay } from './components/settings/SettingsOverlay';
 import { ResourceSidebar } from './components/sidebar/ResourceSidebar';
 import { StreakSidebar } from './components/stats/StreakSidebar';
 import { SubjectPicker } from './components/subjects/SubjectPicker';
+import { LogTimeModal } from './components/log/LogTimeModal';
 import { PHASE_LABELS } from './utils/constants';
-import { getSubject, SUBJECTS } from './types/subject';
+import { getSubject, SUBJECTS, subjectName } from './types/subject';
+import { LanguageProvider, useT } from './i18n/i18n';
 import './styles/tokens.css';
 import './styles/glass.css';
 import './App.css';
 
-function App() {
-  const { settings, updateSettings } = useSettings();
+function AppInner({ settings, updateSettings }: { settings: ReturnType<typeof useSettings>['settings']; updateSettings: ReturnType<typeof useSettings>['updateSettings'] }) {
+  const t = useT();
   const {
     state, start, pause, resume, skip, reset,
     armOvertime, endOvertime, markPreEndNotified,
@@ -36,6 +38,7 @@ function App() {
   const studyStats = useStudyStats(state.phase, state.status, activeSubject.id, state.overtime);
   const { notifyPreEnd } = useNotifier();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [logTimeOpen, setLogTimeOpen] = useState(false);
 
   // Pre-end notification + banner trigger at 30s left in a focus phase.
   useEffect(() => {
@@ -46,10 +49,10 @@ function App() {
       !state.preEndNotified &&
       state.timeRemaining === PRE_END_THRESHOLD_SECONDS
     ) {
-      notifyPreEnd(activeSubject.name, PRE_END_THRESHOLD_SECONDS);
+      notifyPreEnd(subjectName(activeSubject.id, settings.language), PRE_END_THRESHOLD_SECONDS);
       markPreEndNotified();
     }
-  }, [state.phase, state.status, state.overtime, state.preEndNotified, state.timeRemaining, activeSubject.name, notifyPreEnd, markPreEndNotified]);
+  }, [state.phase, state.status, state.overtime, state.preEndNotified, state.timeRemaining, activeSubject.id, settings.language, notifyPreEnd, markPreEndNotified]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -61,7 +64,10 @@ function App() {
         else if (state.status === 'paused') resume();
         else if (state.status === 'idle') start();
       }
-      if (e.code === 'Escape') setSettingsOpen(false);
+      if (e.code === 'Escape') {
+        setSettingsOpen(false);
+        setLogTimeOpen(false);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -94,10 +100,13 @@ function App() {
   }, [state.phase, prevPhase, playSound]);
 
   const phaseLabel =
-    state.phase === 'focus' ? activeSubject.name :
+    state.phase === 'focus' ? subjectName(activeSubject.id, settings.language) :
+    state.phase === 'shortBreak' ? t('Break', 'Pauză') :
+    state.phase === 'longBreak' ? t('Long Break', 'Pauză lungă') :
+    state.phase === 'cycleComplete' ? t('Cycle Complete', 'Ciclu complet') :
+    state.phase === 'idle' ? t('Ready', 'Gata') :
     PHASE_LABELS[state.phase] || 'Ready';
 
-  // Banner shows once preEndNotified fires until phase ends or user dismisses/arms.
   const showPreEndBanner =
     state.phase === 'focus' &&
     state.status === 'running' &&
@@ -111,7 +120,7 @@ function App() {
       <button
         className="hamburger-btn"
         onClick={() => setSettingsOpen(true)}
-        aria-label="Open settings"
+        aria-label={t('Open settings', 'Deschide setările')}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <line x1="3" y1="6" x2="21" y2="6" />
@@ -169,10 +178,16 @@ function App() {
       <AnimatePresence>
         {showPreEndBanner && (
           <PreEndBanner
-            subjectName={activeSubject.name}
+            subjectName={subjectName(activeSubject.id, settings.language)}
             secondsLeft={state.timeRemaining}
             onDismiss={markPreEndNotified}
             onArmOvertime={armOvertime}
+          />
+        )}
+        {logTimeOpen && (
+          <LogTimeModal
+            onClose={() => setLogTimeOpen(false)}
+            onSave={(date, subjectId, seconds) => studyStats.addManualSeconds(date, subjectId, seconds)}
           />
         )}
       </AnimatePresence>
@@ -188,14 +203,17 @@ function App() {
 
       <StreakSidebar
         todaySeconds={studyStats.todaySeconds}
+        todayBySubject={studyStats.todayBySubject}
         streak={studyStats.streak}
         streakGoalMinutes={studyStats.streakGoalMinutes}
         weekData={studyStats.weekData}
         allRecords={studyStats.allRecords}
         dailyRecords={studyStats.dailyRecords}
         subjectGoals={settings.subjectGoals}
+        subjectDailyGoals={settings.subjectDailyGoals}
         phase={state.phase}
         activeSubject={activeSubject}
+        onOpenLogTime={() => setLogTimeOpen(true)}
       />
 
       <ResourceSidebar
@@ -205,6 +223,15 @@ function App() {
         onRemoveResource={removeResource}
       />
     </div>
+  );
+}
+
+function App() {
+  const { settings, updateSettings } = useSettings();
+  return (
+    <LanguageProvider value={settings.language}>
+      <AppInner settings={settings} updateSettings={updateSettings} />
+    </LanguageProvider>
   );
 }
 

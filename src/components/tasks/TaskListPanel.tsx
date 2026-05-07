@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from 'motion/react';
 import type { Task } from '../../types/task';
 import type { Subject } from '../../types/subject';
+import { subjectName } from '../../types/subject';
 import { TaskItem } from './TaskItem';
 import { TaskInput } from './TaskInput';
 import { CompletionBanner } from './CompletionBanner';
+import { useT, useLang } from '../../i18n/i18n';
 import './TaskListPanel.css';
 
 interface Props {
@@ -16,9 +18,12 @@ interface Props {
 }
 
 export function TaskListPanel({ activeSubject, tasks, allCompleted, onAddTask, onCompleteTask, onDeleteTask }: Props) {
+  const t = useT();
+  const lang = useLang();
   const accent = activeSubject.color;
   const subjectId = activeSubject.id;
   const activeTasks = tasks.filter(t => !t.completed);
+  const subjName = subjectName(activeSubject.id, lang);
 
   return (
     <div className="task-list-panel">
@@ -28,7 +33,7 @@ export function TaskListPanel({ activeSubject, tasks, allCompleted, onAddTask, o
           animate={{ backgroundColor: accent }}
           transition={{ duration: 0.4 }}
         />
-        <span className="task-list-title">{activeSubject.name} Tasks</span>
+        <span className="task-list-title">{t(`${subjName} Tasks`, `Task-uri ${subjName}`)}</span>
         <span className="task-list-count">{activeTasks.length}</span>
       </div>
 

@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import type { TimerPhase, TimerStatus } from '../../types/timer';
 import type { Subject } from '../../types/subject';
 import { getPhaseColors } from '../../utils/constants';
+import { useT } from '../../i18n/i18n';
 import './ControlButtons.css';
 
 interface Props {
@@ -27,6 +28,7 @@ export function ControlButtons({
   phase, status, activeSubject, overtime = false,
   onStart, onPause, onResume, onSkip, onReset, onEndOvertime,
 }: Props) {
+  const t = useT();
   const colors = getPhaseColors(phase, activeSubject);
 
   return (
@@ -41,7 +43,7 @@ export function ControlButtons({
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5.14v14l11-7-11-7z" />
           </svg>
-          <span>Start</span>
+          <span>{t('Start', 'Start')}</span>
         </motion.button>
       )}
 
@@ -55,7 +57,7 @@ export function ControlButtons({
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
           </svg>
-          <span>Pause</span>
+          <span>{t('Pause', 'Pauză')}</span>
         </motion.button>
       )}
 
@@ -69,7 +71,7 @@ export function ControlButtons({
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5.14v14l11-7-11-7z" />
           </svg>
-          <span>Resume</span>
+          <span>{t('Resume', 'Continuă')}</span>
         </motion.button>
       )}
 
@@ -80,15 +82,15 @@ export function ControlButtons({
               className="control-btn control-btn-secondary control-btn-end"
               variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
               onClick={() => onEndOvertime?.()}
-              title="End session"
+              title={t('End session', 'Termină sesiunea')}
             >
-              <span>End Session</span>
+              <span>{t('End Session', 'Termină sesiunea')}</span>
             </motion.button>
           ) : (
             <motion.button
               className="control-btn control-btn-secondary"
               variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
-              onClick={onSkip} title="Skip to next phase"
+              onClick={onSkip} title={t('Skip to next phase', 'Sari la următoarea fază')}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z" />
@@ -99,7 +101,7 @@ export function ControlButtons({
           <motion.button
             className="control-btn control-btn-secondary"
             variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
-            onClick={onReset} title="Reset"
+            onClick={onReset} title={t('Reset', 'Resetează')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
