@@ -5,8 +5,7 @@ import { DEFAULT_SETTINGS } from '../types/settings';
 
 function getPhaseTime(phase: TimerPhase, settings: AppSettings): number {
   switch (phase) {
-    case 'timerA': return settings.timerADuration * 60;
-    case 'timerB': return settings.timerBDuration * 60;
+    case 'focus': return settings.focusDuration * 60;
     case 'shortBreak': return settings.shortBreakDuration * 60;
     case 'longBreak': return settings.longBreakDuration * 60;
     default: return 0;
@@ -16,22 +15,20 @@ function getPhaseTime(phase: TimerPhase, settings: AppSettings): number {
 function getNextPhase(state: TimerState, settings: AppSettings): { phase: TimerPhase; autoStart: boolean } {
   switch (state.phase) {
     case 'idle':
-      return { phase: 'timerA', autoStart: true };
-    case 'timerA':
-      return { phase: 'shortBreak', autoStart: settings.autoStartBreaks };
-    case 'shortBreak':
-      return { phase: 'timerB', autoStart: settings.autoStartTimers };
-    case 'timerB': {
+      return { phase: 'focus', autoStart: true };
+    case 'focus': {
       const newCompleted = state.completedCycles + 1;
       if (newCompleted > 0 && newCompleted % settings.cyclesBeforeLongBreak === 0) {
         return { phase: 'longBreak', autoStart: settings.autoStartBreaks };
       }
-      return { phase: 'cycleComplete', autoStart: settings.autoLoopCycles };
+      return { phase: 'shortBreak', autoStart: settings.autoStartBreaks };
     }
-    case 'cycleComplete':
-      return { phase: 'timerA', autoStart: settings.autoLoopCycles };
+    case 'shortBreak':
+      return { phase: 'focus', autoStart: settings.autoStartTimers };
     case 'longBreak':
-      return { phase: 'timerA', autoStart: settings.autoLoopCycles };
+      return { phase: 'cycleComplete', autoStart: false };
+    case 'cycleComplete':
+      return { phase: 'focus', autoStart: settings.autoLoopCycles };
     default:
       return { phase: 'idle', autoStart: false };
   }
@@ -46,11 +43,41 @@ const initialState: TimerState = {
   completedCycles: 0,
 };
 
+function advanceFromFocusOrSkip(state: TimerState, settings: AppSettings): TimerState {
+  const isFocus = state.phase === 'focus';
+  const newCompletedCycles = isFocus ? state.completedCycles + 1 : state.completedCycles;
+  const stateWithCycles = { ...state, completedCycles: newCompletedCycles };
+  const { phase: nextPhase, autoStart } = getNextPhase(stateWithCycles, settings);
+
+  if (nextPhase === 'cycleComplete' && !settings.autoLoopCycles) {
+    return {
+      ...state,
+      phase: 'cycleComplete',
+      status: 'idle',
+      timeRemaining: 0,
+      totalTime: 0,
+      completedCycles: newCompletedCycles,
+      cycleCount: state.cycleCount + (isFocus ? 1 : 0),
+    };
+  }
+
+  const totalTime = getPhaseTime(nextPhase, settings);
+  return {
+    ...state,
+    phase: nextPhase,
+    status: autoStart ? 'running' : 'paused',
+    timeRemaining: totalTime,
+    totalTime,
+    completedCycles: newCompletedCycles,
+    cycleCount: isFocus ? state.cycleCount + 1 : state.cycleCount,
+  };
+}
+
 function createReducer(settings: AppSettings) {
   return function timerReducer(state: TimerState, action: TimerAction): TimerState {
     switch (action.type) {
       case 'START': {
-        const phase: TimerPhase = state.phase === 'idle' ? 'timerA' : state.phase;
+        const phase: TimerPhase = state.phase === 'idle' ? 'focus' : state.phase;
         const totalTime = getPhaseTime(phase, settings);
         return {
           ...state,
@@ -73,67 +100,13 @@ function createReducer(settings: AppSettings) {
         if (state.status !== 'running') return state;
         const newTime = state.timeRemaining - 1;
         if (newTime <= 0) {
-          // Phase complete — transition
-          const isTimerB = state.phase === 'timerB';
-          const newCompletedCycles = isTimerB ? state.completedCycles + 1 : state.completedCycles;
-          const stateWithCycles = { ...state, completedCycles: newCompletedCycles };
-          const { phase: nextPhase, autoStart } = getNextPhase(stateWithCycles, settings);
-
-          if (nextPhase === 'cycleComplete' && !settings.autoLoopCycles) {
-            return {
-              ...state,
-              phase: 'cycleComplete',
-              status: 'idle',
-              timeRemaining: 0,
-              totalTime: 0,
-              completedCycles: newCompletedCycles,
-              cycleCount: state.cycleCount + 1,
-            };
-          }
-
-          const totalTime = getPhaseTime(nextPhase, settings);
-          return {
-            ...state,
-            phase: nextPhase,
-            status: autoStart ? 'running' : 'paused',
-            timeRemaining: totalTime,
-            totalTime,
-            completedCycles: newCompletedCycles,
-            cycleCount: isTimerB ? state.cycleCount + 1 : state.cycleCount,
-          };
+          return advanceFromFocusOrSkip(state, settings);
         }
         return { ...state, timeRemaining: newTime };
       }
 
-      case 'SKIP': {
-        const isTimerB = state.phase === 'timerB';
-        const newCompletedCycles = isTimerB ? state.completedCycles + 1 : state.completedCycles;
-        const stateWithCycles = { ...state, completedCycles: newCompletedCycles };
-        const { phase: nextPhase, autoStart } = getNextPhase(stateWithCycles, settings);
-
-        if (nextPhase === 'cycleComplete' && !settings.autoLoopCycles) {
-          return {
-            ...state,
-            phase: 'cycleComplete',
-            status: 'idle',
-            timeRemaining: 0,
-            totalTime: 0,
-            completedCycles: newCompletedCycles,
-            cycleCount: state.cycleCount + 1,
-          };
-        }
-
-        const totalTime = getPhaseTime(nextPhase, settings);
-        return {
-          ...state,
-          phase: nextPhase,
-          status: autoStart ? 'running' : 'paused',
-          timeRemaining: totalTime,
-          totalTime,
-          completedCycles: newCompletedCycles,
-          cycleCount: isTimerB ? state.cycleCount + 1 : state.cycleCount,
-        };
-      }
+      case 'SKIP':
+        return advanceFromFocusOrSkip(state, settings);
 
       case 'RESET':
         return { ...initialState };
@@ -166,29 +139,23 @@ export function useTimerMachine(settings: AppSettings = DEFAULT_SETTINGS) {
   const skip = useCallback(() => dispatch({ type: 'SKIP' }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
-  // Track phase changes for callbacks
   const phaseChanged = state.phase !== prevPhaseRef.current;
   const previousPhase = prevPhaseRef.current;
   useEffect(() => {
     prevPhaseRef.current = state.phase;
   }, [state.phase]);
 
-  // Tick interval
   useEffect(() => {
     if (state.status === 'running') {
       intervalRef.current = window.setInterval(() => {
         dispatch({ type: 'TICK' });
       }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [state.status]);
 

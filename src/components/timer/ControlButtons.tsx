@@ -1,11 +1,13 @@
 import { motion } from 'motion/react';
 import type { TimerPhase, TimerStatus } from '../../types/timer';
-import { PHASE_COLORS } from '../../utils/constants';
+import type { Subject } from '../../types/subject';
+import { getPhaseColors } from '../../utils/constants';
 import './ControlButtons.css';
 
 interface Props {
   phase: TimerPhase;
   status: TimerStatus;
+  activeSubject: Subject | null;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -19,8 +21,8 @@ const buttonVariants = {
   tap: { scale: 0.95 },
 };
 
-export function ControlButtons({ phase, status, onStart, onPause, onResume, onSkip, onReset }: Props) {
-  const colors = PHASE_COLORS[phase] || PHASE_COLORS.idle;
+export function ControlButtons({ phase, status, activeSubject, onStart, onPause, onResume, onSkip, onReset }: Props) {
+  const colors = getPhaseColors(phase, activeSubject);
 
   return (
     <div className="control-buttons">
@@ -28,10 +30,7 @@ export function ControlButtons({ phase, status, onStart, onPause, onResume, onSk
         <motion.button
           className="control-btn control-btn-primary"
           style={{ '--btn-color': colors.primary, '--btn-glow': colors.glow } as React.CSSProperties}
-          variants={buttonVariants}
-          initial="rest"
-          whileHover="hover"
-          whileTap="tap"
+          variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
           onClick={onStart}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -45,10 +44,7 @@ export function ControlButtons({ phase, status, onStart, onPause, onResume, onSk
         <motion.button
           className="control-btn control-btn-primary"
           style={{ '--btn-color': colors.primary, '--btn-glow': colors.glow } as React.CSSProperties}
-          variants={buttonVariants}
-          initial="rest"
-          whileHover="hover"
-          whileTap="tap"
+          variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
           onClick={onPause}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -62,10 +58,7 @@ export function ControlButtons({ phase, status, onStart, onPause, onResume, onSk
         <motion.button
           className="control-btn control-btn-primary"
           style={{ '--btn-color': colors.primary, '--btn-glow': colors.glow } as React.CSSProperties}
-          variants={buttonVariants}
-          initial="rest"
-          whileHover="hover"
-          whileTap="tap"
+          variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
           onClick={onResume}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -79,12 +72,8 @@ export function ControlButtons({ phase, status, onStart, onPause, onResume, onSk
         <>
           <motion.button
             className="control-btn control-btn-secondary"
-            variants={buttonVariants}
-            initial="rest"
-            whileHover="hover"
-            whileTap="tap"
-            onClick={onSkip}
-            title="Skip to next phase"
+            variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
+            onClick={onSkip} title="Skip to next phase"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z" />
@@ -93,12 +82,8 @@ export function ControlButtons({ phase, status, onStart, onPause, onResume, onSk
 
           <motion.button
             className="control-btn control-btn-secondary"
-            variants={buttonVariants}
-            initial="rest"
-            whileHover="hover"
-            whileTap="tap"
-            onClick={onReset}
-            title="Reset"
+            variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap"
+            onClick={onReset} title="Reset"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />

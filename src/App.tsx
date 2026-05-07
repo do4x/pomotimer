@@ -4,6 +4,7 @@ import { useSettings } from './hooks/useSettings';
 import { useTaskStore } from './hooks/useTaskStore';
 import { useResourceStore } from './hooks/useResourceStore';
 import { useStudyStats } from './hooks/useStudyStats';
+import { useActiveSubject } from './hooks/useActiveSubject';
 import { CircularTimer } from './components/timer/CircularTimer';
 import { ControlButtons } from './components/timer/ControlButtons';
 import { PhaseIndicator } from './components/timer/PhaseIndicator';
@@ -12,7 +13,9 @@ import { TaskListPanel } from './components/tasks/TaskListPanel';
 import { SettingsOverlay } from './components/settings/SettingsOverlay';
 import { ResourceSidebar } from './components/sidebar/ResourceSidebar';
 import { StreakSidebar } from './components/stats/StreakSidebar';
+import { SubjectPicker } from './components/subjects/SubjectPicker';
 import { PHASE_LABELS } from './utils/constants';
+import { getSubject, SUBJECTS } from './types/subject';
 import './styles/tokens.css';
 import './styles/glass.css';
 import './App.css';
@@ -20,25 +23,24 @@ import './App.css';
 function App() {
   const { settings, updateSettings } = useSettings();
   const { state, start, pause, resume, skip, reset } = useTimerMachine(settings);
-  const { tasks, addTask, completeTask, deleteTask, allCompleted } = useTaskStore();
-  const { resources, addResource, removeResource } = useResourceStore();
-  const { todaySeconds, streak, streakGoalMinutes, updateGoal, weekData, allRecords } = useStudyStats(state.phase, state.status);
+  const { activeId, setActive } = useActiveSubject();
+  const activeSubject = getSubject(activeId) || SUBJECTS[0];
+  const { tasksFor, allCompleted, addTask, completeTask, deleteTask } = useTaskStore();
+  const { resourcesFor, addResource, removeResource } = useResourceStore();
+  const studyStats = useStudyStats(state.phase, state.status, activeSubject.id);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
       if (e.code === 'Space') {
         e.preventDefault();
         if (state.status === 'running') pause();
         else if (state.status === 'paused') resume();
         else if (state.status === 'idle') start();
       }
-      if (e.code === 'Escape') {
-        setSettingsOpen(false);
-      }
+      if (e.code === 'Escape') setSettingsOpen(false);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -62,7 +64,6 @@ function App() {
     } catch { /* ignore audio errors */ }
   }, [settings.soundEnabled, settings.soundVolume]);
 
-  // Detect phase changes for sound
   const [prevPhase, setPrevPhase] = useState(state.phase);
   useEffect(() => {
     if (state.phase !== prevPhase && state.phase !== 'idle') {
@@ -72,13 +73,11 @@ function App() {
   }, [state.phase, prevPhase, playSound]);
 
   const phaseLabel =
-    state.phase === 'timerA' ? settings.timerALabel :
-    state.phase === 'timerB' ? settings.timerBLabel :
+    state.phase === 'focus' ? activeSubject.name :
     PHASE_LABELS[state.phase] || 'Ready';
 
   return (
     <div className="app">
-      {/* Hamburger menu */}
       <button
         className="hamburger-btn"
         onClick={() => setSettingsOpen(true)}
@@ -91,13 +90,10 @@ function App() {
         </svg>
       </button>
 
-      {/* Main content */}
       <main className="main-content">
-        <PhaseIndicator
-          phase={state.phase}
-          timerALabel={settings.timerALabel}
-          timerBLabel={settings.timerBLabel}
-        />
+        <SubjectPicker activeId={activeSubject.id} onPick={setActive} />
+
+        <PhaseIndicator phase={state.phase} activeSubject={activeSubject} />
 
         <CircularTimer
           timeRemaining={state.timeRemaining}
@@ -105,11 +101,13 @@ function App() {
           phase={state.phase}
           status={state.status}
           phaseLabel={phaseLabel}
+          activeSubject={activeSubject}
         />
 
         <ControlButtons
           phase={state.phase}
           status={state.status}
+          activeSubject={activeSubject}
           onStart={start}
           onPause={pause}
           onResume={resume}
@@ -121,47 +119,43 @@ function App() {
           completedCycles={state.completedCycles}
           totalCycles={settings.cyclesBeforeLongBreak}
           phase={state.phase}
+          activeSubject={activeSubject}
         />
 
         <TaskListPanel
-          phase={state.phase}
-          tasksA={tasks.A}
-          tasksB={tasks.B}
-          allCompletedA={allCompleted('A')}
-          allCompletedB={allCompleted('B')}
+          activeSubject={activeSubject}
+          tasks={tasksFor(activeSubject.id)}
+          allCompleted={allCompleted(activeSubject.id)}
           onAddTask={addTask}
           onCompleteTask={completeTask}
           onDeleteTask={deleteTask}
-          timerALabel={settings.timerALabel}
-          timerBLabel={settings.timerBLabel}
         />
       </main>
 
-      {/* Settings overlay */}
       <SettingsOverlay
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         onUpdate={updateSettings}
-        streakGoalMinutes={streakGoalMinutes}
-        onStreakGoalChange={updateGoal}
+        streakGoalMinutes={studyStats.streakGoalMinutes}
+        onStreakGoalChange={studyStats.updateGoal}
       />
 
-      {/* Streak sidebar */}
       <StreakSidebar
-        todaySeconds={todaySeconds}
-        streak={streak}
-        streakGoalMinutes={streakGoalMinutes}
-        weekData={weekData}
-        allRecords={allRecords}
+        todaySeconds={studyStats.todaySeconds}
+        streak={studyStats.streak}
+        streakGoalMinutes={studyStats.streakGoalMinutes}
+        weekData={studyStats.weekData}
+        allRecords={studyStats.allRecords}
+        dailyRecords={studyStats.dailyRecords}
+        subjectGoals={settings.subjectGoals}
         phase={state.phase}
+        activeSubject={activeSubject}
       />
 
-      {/* Resource sidebar */}
       <ResourceSidebar
-        phase={state.phase}
-        resourcesA={resources.A}
-        resourcesB={resources.B}
+        activeSubject={activeSubject}
+        resources={resourcesFor(activeSubject.id)}
         onAddResource={addResource}
         onRemoveResource={removeResource}
       />

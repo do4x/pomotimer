@@ -1,7 +1,10 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { TimerPhase } from '../../types/timer';
-import { PHASE_COLORS } from '../../utils/constants';
+import type { Subject } from '../../types/subject';
+import type { DailySubjectRecord } from '../../types/stats';
+import { getPhaseColors, PHASE_COLORS } from '../../utils/constants';
+import { WeeklyProgress } from '../subjects/WeeklyProgress';
 import './StreakSidebar.css';
 
 interface DayData {
@@ -16,7 +19,10 @@ interface Props {
   streakGoalMinutes: number;
   weekData: DayData[];
   allRecords: Record<string, number>;
+  dailyRecords: Record<string, DailySubjectRecord>;
+  subjectGoals: Record<string, number>;
   phase: TimerPhase;
+  activeSubject: Subject | null;
 }
 
 type ViewMode = 'daily' | 'calendar';
@@ -60,7 +66,7 @@ function getSortedDays(records: Record<string, number>): { date: string; seconds
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekData, allRecords, phase }: Props) {
+export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekData, allRecords, dailyRecords, subjectGoals, phase, activeSubject }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('daily');
   const [calMonth, setCalMonth] = useState(() => {
@@ -69,7 +75,7 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
   });
   const closeTimeout = useRef<number | null>(null);
 
-  const colors = PHASE_COLORS[phase] || PHASE_COLORS.idle;
+  const colors = getPhaseColors(phase, activeSubject) || PHASE_COLORS.idle;
   const goalSeconds = streakGoalMinutes * 60;
   const todayProgress = Math.min(todaySeconds / goalSeconds, 1);
   const maxWeekSeconds = Math.max(...weekData.map(d => d.seconds), goalSeconds);
@@ -225,6 +231,9 @@ export function StreakSidebar({ todaySeconds, streak, streakGoalMinutes, weekDat
                 })}
               </div>
             </div>
+
+            {/* Per-subject weekly progress */}
+            <WeeklyProgress goals={subjectGoals} dailyRecords={dailyRecords} />
 
             {/* View toggle */}
             <div className="streak-view-toggle">

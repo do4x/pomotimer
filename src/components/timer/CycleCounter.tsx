@@ -1,16 +1,18 @@
 import { motion } from 'motion/react';
-import { PHASE_COLORS } from '../../utils/constants';
+import { getPhaseColors } from '../../utils/constants';
 import type { TimerPhase } from '../../types/timer';
+import type { Subject } from '../../types/subject';
 import './CycleCounter.css';
 
 interface Props {
   completedCycles: number;
   totalCycles: number;
   phase: TimerPhase;
+  activeSubject: Subject | null;
 }
 
-export function CycleCounter({ completedCycles, totalCycles, phase }: Props) {
-  const colors = PHASE_COLORS[phase] || PHASE_COLORS.idle;
+export function CycleCounter({ completedCycles, totalCycles, phase, activeSubject }: Props) {
+  const colors = getPhaseColors(phase, activeSubject);
 
   return (
     <div className="cycle-counter">

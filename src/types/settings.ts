@@ -1,6 +1,7 @@
+import { DEFAULT_SUBJECT_GOALS } from './subject';
+
 export interface AppSettings {
-  timerADuration: number;
-  timerBDuration: number;
+  focusDuration: number;
   shortBreakDuration: number;
   longBreakDuration: number;
   cyclesBeforeLongBreak: number;
@@ -9,14 +10,12 @@ export interface AppSettings {
   autoLoopCycles: boolean;
   soundEnabled: boolean;
   soundVolume: number;
-  timerALabel: string;
-  timerBLabel: string;
+  subjectGoals: Record<string, number>; // weekly target hours per subject id
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  timerADuration: 40,
-  timerBDuration: 20,
-  shortBreakDuration: 2,
+  focusDuration: 50,
+  shortBreakDuration: 5,
   longBreakDuration: 15,
   cyclesBeforeLongBreak: 4,
   autoStartTimers: true,
@@ -24,6 +23,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoLoopCycles: true,
   soundEnabled: true,
   soundVolume: 0.7,
-  timerALabel: 'Focus A',
-  timerBLabel: 'Focus B',
+  subjectGoals: { ...DEFAULT_SUBJECT_GOALS },
 };

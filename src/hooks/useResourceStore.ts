@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Resource } from '../types/resource';
-import type { TimerTarget } from '../types/task';
+import { SUBJECT_IDS } from '../types/subject';
 
 const STORAGE_KEY = 'pomotimer-resources';
 
-interface ResourceStore {
-  A: Resource[];
-  B: Resource[];
+type ResourceStore = Record<string, Resource[]>;
+
+function emptyStore(): ResourceStore {
+  return SUBJECT_IDS.reduce<ResourceStore>((acc, id) => ({ ...acc, [id]: [] }), {});
 }
 
 function detectType(url: string): Resource['type'] {
@@ -18,9 +19,17 @@ function detectType(url: string): Resource['type'] {
 function loadResources(): ResourceStore {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && (Array.isArray(parsed.A) || Array.isArray(parsed.B))) return emptyStore();
+      const result = emptyStore();
+      for (const id of SUBJECT_IDS) {
+        if (Array.isArray(parsed[id])) result[id] = parsed[id];
+      }
+      return result;
+    }
   } catch { /* ignore */ }
-  return { A: [], B: [] };
+  return emptyStore();
 }
 
 export function useResourceStore() {
@@ -30,7 +39,7 @@ export function useResourceStore() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(resources));
   }, [resources]);
 
-  const addResource = useCallback((timer: TimerTarget, url: string, title?: string) => {
+  const addResource = useCallback((subjectId: string, url: string, title?: string) => {
     const resource: Resource = {
       id: crypto.randomUUID(),
       url,
@@ -40,16 +49,21 @@ export function useResourceStore() {
     };
     setResources(prev => ({
       ...prev,
-      [timer]: [...prev[timer], resource],
+      [subjectId]: [...(prev[subjectId] || []), resource],
     }));
   }, []);
 
-  const removeResource = useCallback((timer: TimerTarget, id: string) => {
+  const removeResource = useCallback((subjectId: string, id: string) => {
     setResources(prev => ({
       ...prev,
-      [timer]: prev[timer].filter(r => r.id !== id),
+      [subjectId]: (prev[subjectId] || []).filter(r => r.id !== id),
     }));
   }, []);
 
-  return { resources, addResource, removeResource };
+  const resourcesFor = useCallback(
+    (subjectId: string): Resource[] => resources[subjectId] || [],
+    [resources]
+  );
+
+  return { resources, addResource, removeResource, resourcesFor };
 }

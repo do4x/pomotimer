@@ -1,33 +1,40 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Task, TimerTarget } from '../types/task';
+import type { Task } from '../types/task';
+import { SUBJECT_IDS } from '../types/subject';
 
 const STORAGE_KEY = 'pomotimer-tasks';
 
-interface TaskStore {
-  A: Task[];
-  B: Task[];
+type TaskStore = Record<string, Task[]>;
+
+function emptyStore(): TaskStore {
+  return SUBJECT_IDS.reduce<TaskStore>((acc, id) => ({ ...acc, [id]: [] }), {});
 }
 
 function loadTasks(): TaskStore {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Ignore old A/B-shaped data; start fresh.
+      if (parsed && (Array.isArray(parsed.A) || Array.isArray(parsed.B))) return emptyStore();
+      const result = emptyStore();
+      for (const id of SUBJECT_IDS) {
+        if (Array.isArray(parsed[id])) result[id] = parsed[id];
+      }
+      return result;
+    }
   } catch { /* ignore */ }
-  return { A: [], B: [] };
-}
-
-function saveTasks(store: TaskStore) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  return emptyStore();
 }
 
 export function useTaskStore() {
   const [tasks, setTasks] = useState<TaskStore>(loadTasks);
 
   useEffect(() => {
-    saveTasks(tasks);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }, [tasks]);
 
-  const addTask = useCallback((timer: TimerTarget, text: string) => {
+  const addTask = useCallback((subjectId: string, text: string) => {
     const task: Task = {
       id: crypto.randomUUID(),
       text,
@@ -36,28 +43,36 @@ export function useTaskStore() {
     };
     setTasks(prev => ({
       ...prev,
-      [timer]: [...prev[timer], task],
+      [subjectId]: [...(prev[subjectId] || []), task],
     }));
   }, []);
 
-  const completeTask = useCallback((timer: TimerTarget, id: string) => {
+  const completeTask = useCallback((subjectId: string, id: string) => {
     setTasks(prev => ({
       ...prev,
-      [timer]: prev[timer].map(t => t.id === id ? { ...t, completed: true } : t),
+      [subjectId]: (prev[subjectId] || []).map(t => (t.id === id ? { ...t, completed: true } : t)),
     }));
   }, []);
 
-  const deleteTask = useCallback((timer: TimerTarget, id: string) => {
+  const deleteTask = useCallback((subjectId: string, id: string) => {
     setTasks(prev => ({
       ...prev,
-      [timer]: prev[timer].filter(t => t.id !== id),
+      [subjectId]: (prev[subjectId] || []).filter(t => t.id !== id),
     }));
   }, []);
 
-  const allCompleted = useCallback((timer: TimerTarget): boolean => {
-    const list = tasks[timer];
-    return list.length > 0 && list.every(t => t.completed);
-  }, [tasks]);
+  const tasksFor = useCallback(
+    (subjectId: string): Task[] => tasks[subjectId] || [],
+    [tasks]
+  );
 
-  return { tasks, addTask, completeTask, deleteTask, allCompleted };
+  const allCompleted = useCallback(
+    (subjectId: string): boolean => {
+      const list = tasks[subjectId] || [];
+      return list.length > 0 && list.every(t => t.completed);
+    },
+    [tasks]
+  );
+
+  return { tasks, addTask, completeTask, deleteTask, tasksFor, allCompleted };
 }
