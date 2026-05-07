@@ -7,6 +7,8 @@ interface Props {
   onClose: () => void;
   settings: AppSettings;
   onUpdate: (partial: Partial<AppSettings>) => void;
+  streakGoalMinutes: number;
+  onStreakGoalChange: (minutes: number) => void;
 }
 
 function NumberStepper({ label, value, onChange, min = 1, max = 120, unit = 'min' }: {
@@ -61,7 +63,7 @@ function Slider({ label, value, onChange, min = 0, max = 1, step = 0.1 }: {
   );
 }
 
-export function SettingsOverlay({ isOpen, onClose, settings, onUpdate }: Props) {
+export function SettingsOverlay({ isOpen, onClose, settings, onUpdate, streakGoalMinutes, onStreakGoalChange }: Props) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -132,6 +134,11 @@ export function SettingsOverlay({ isOpen, onClose, settings, onUpdate }: Props) 
                 <Toggle label="Auto-start timers" value={settings.autoStartTimers} onChange={v => onUpdate({ autoStartTimers: v })} />
                 <Toggle label="Auto-start breaks" value={settings.autoStartBreaks} onChange={v => onUpdate({ autoStartBreaks: v })} />
                 <Toggle label="Auto-loop cycles" value={settings.autoLoopCycles} onChange={v => onUpdate({ autoLoopCycles: v })} />
+              </div>
+
+              <div className="settings-section">
+                <h3 className="settings-section-title" style={{ color: '#F59E0B' }}>Streak</h3>
+                <NumberStepper label="Daily goal" value={streakGoalMinutes} onChange={onStreakGoalChange} min={5} max={480} unit="min" />
               </div>
 
               <div className="settings-section">

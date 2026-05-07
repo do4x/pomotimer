@@ -26,7 +26,6 @@ export function TaskListPanel({
   onAddTask, onCompleteTask, onDeleteTask,
   timerALabel, timerBLabel,
 }: Props) {
-  const isTimerA = phase === 'timerA' || phase === 'idle';
   const isTimerB = phase === 'timerB';
   const activeTimer: TimerTarget = isTimerB ? 'B' : 'A';
   const tasks = isTimerB ? tasksB : tasksA;

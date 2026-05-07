@@ -3,6 +3,7 @@ import { useTimerMachine } from './hooks/useTimerMachine';
 import { useSettings } from './hooks/useSettings';
 import { useTaskStore } from './hooks/useTaskStore';
 import { useResourceStore } from './hooks/useResourceStore';
+import { useStudyStats } from './hooks/useStudyStats';
 import { CircularTimer } from './components/timer/CircularTimer';
 import { ControlButtons } from './components/timer/ControlButtons';
 import { PhaseIndicator } from './components/timer/PhaseIndicator';
@@ -10,6 +11,7 @@ import { CycleCounter } from './components/timer/CycleCounter';
 import { TaskListPanel } from './components/tasks/TaskListPanel';
 import { SettingsOverlay } from './components/settings/SettingsOverlay';
 import { ResourceSidebar } from './components/sidebar/ResourceSidebar';
+import { StreakSidebar } from './components/stats/StreakSidebar';
 import { PHASE_LABELS } from './utils/constants';
 import './styles/tokens.css';
 import './styles/glass.css';
@@ -20,6 +22,7 @@ function App() {
   const { state, start, pause, resume, skip, reset } = useTimerMachine(settings);
   const { tasks, addTask, completeTask, deleteTask, allCompleted } = useTaskStore();
   const { resources, addResource, removeResource } = useResourceStore();
+  const { todaySeconds, streak, streakGoalMinutes, updateGoal, weekData, allRecords } = useStudyStats(state.phase, state.status);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Keyboard shortcuts
@@ -140,6 +143,18 @@ function App() {
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         onUpdate={updateSettings}
+        streakGoalMinutes={streakGoalMinutes}
+        onStreakGoalChange={updateGoal}
+      />
+
+      {/* Streak sidebar */}
+      <StreakSidebar
+        todaySeconds={todaySeconds}
+        streak={streak}
+        streakGoalMinutes={streakGoalMinutes}
+        weekData={weekData}
+        allRecords={allRecords}
+        phase={state.phase}
       />
 
       {/* Resource sidebar */}
