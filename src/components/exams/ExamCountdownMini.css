@@ -57,6 +57,10 @@
   justify-content: center;
 }
 
+.exam-mini-circle > svg {
+  overflow: visible;
+}
+
 .exam-mini-days {
   position: absolute;
   inset: 0;
