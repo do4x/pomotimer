@@ -18,6 +18,9 @@ import { ResourceSidebar } from './components/sidebar/ResourceSidebar';
 import { StreakSidebar } from './components/stats/StreakSidebar';
 import { SubjectPicker } from './components/subjects/SubjectPicker';
 import { LogTimeModal } from './components/log/LogTimeModal';
+import { ExamCountdownIntro } from './components/exams/ExamCountdownIntro';
+import { ExamCountdownMini } from './components/exams/ExamCountdownMini';
+import { hasAnyUpcomingExam } from './types/exams';
 import { PHASE_LABELS } from './utils/constants';
 import { getSubject, SUBJECTS, subjectName } from './types/subject';
 import { LanguageProvider, useT } from './i18n/i18n';
@@ -39,6 +42,7 @@ function AppInner({ settings, updateSettings }: { settings: ReturnType<typeof us
   const { notifyPreEnd } = useNotifier();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [logTimeOpen, setLogTimeOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => hasAnyUpcomingExam());
 
   // Pre-end notification + banner trigger at 30s left in a focus phase.
   useEffect(() => {
@@ -58,6 +62,7 @@ function AppInner({ settings, updateSettings }: { settings: ReturnType<typeof us
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (showIntro) return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (state.status === 'running') pause();
@@ -71,7 +76,7 @@ function AppInner({ settings, updateSettings }: { settings: ReturnType<typeof us
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [state.status, pause, resume, start]);
+  }, [state.status, pause, resume, start, showIntro]);
 
   // Sound on phase change
   const playSound = useCallback(() => {
@@ -129,6 +134,10 @@ function AppInner({ settings, updateSettings }: { settings: ReturnType<typeof us
         </svg>
       </button>
 
+      {hasAnyUpcomingExam() && !showIntro && (
+        <ExamCountdownMini onClick={() => setShowIntro(true)} />
+      )}
+
       <main className="main-content">
         <SubjectPicker activeId={activeSubject.id} onPick={setActive} />
 
@@ -176,6 +185,9 @@ function AppInner({ settings, updateSettings }: { settings: ReturnType<typeof us
       </main>
 
       <AnimatePresence>
+        {showIntro && (
+          <ExamCountdownIntro onDismiss={() => setShowIntro(false)} />
+        )}
         {showPreEndBanner && (
           <PreEndBanner
             subjectName={subjectName(activeSubject.id, settings.language)}

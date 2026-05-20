@@ -1,0 +1,157 @@
+.exam-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  cursor: pointer;
+}
+
+.exam-intro-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(79, 70, 229, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, rgba(20, 184, 166, 0.08) 0%, transparent 55%),
+    var(--color-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.exam-intro-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.exam-intro-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--color-text-muted);
+}
+
+.exam-intro-circles {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-12);
+  flex-wrap: wrap;
+}
+
+.exam-intro-hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  animation: exam-hint-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes exam-hint-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+}
+
+/* === Per-circle === */
+.exam-circle {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.exam-circle-ambient {
+  position: absolute;
+  inset: -50px -50px auto -50px;
+  height: 220px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.exam-circle-svg {
+  position: relative;
+  z-index: 1;
+}
+
+.exam-circle-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 220px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.exam-circle-center {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.exam-circle-days {
+  font-family: var(--font-mono);
+  font-size: var(--text-5xl);
+  font-weight: 300;
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.exam-circle-unit {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  margin-top: var(--space-2);
+}
+
+.exam-circle-percent {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.1em;
+  margin-top: var(--space-3);
+}
+
+.exam-circle-footer {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.exam-circle-name {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.exam-circle-date {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.05em;
+}
